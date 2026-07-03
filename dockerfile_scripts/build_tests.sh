@@ -30,7 +30,10 @@ then
     make -C ${SCRIPT_DIR}
 
     ## OSU Benchmark Configuration Option
-    OSU_CONFIG="--enable-cuda --with-cuda-include=/usr/local/cuda/include --with-cuda-libpath=/usr/local/cuda/lib64"
+    ## libcuda.so is provided by the driver at runtime; at build time
+    ## it only exists in the CUDA toolkit's stubs directory. Point
+    ## configure there so linking succeeds inside the container.
+    OSU_CONFIG="--enable-cuda --with-cuda-include=${CUDA_DIR}/include --with-cuda-libpath=${CUDA_DIR}/lib64/stubs"
 else
     INSTALL_DIR="${HPC_DIR}/tests/rccl-tests"
     mkdir -p ${INSTALL_DIR}

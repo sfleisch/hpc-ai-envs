@@ -36,7 +36,12 @@ echo "Using LIBDIR=$LIBDIR"
 mkdir -p ${PMIX_SRC_DIR}
 cd ${PMIX_SRC_DIR}
 
-wget ${PMIX_URL}
+if [ -n "${OFFLINE_SOURCES:-}" ] && [ -f "${OFFLINE_SOURCES}/tar/pmix-${PMIX_VERSION}.tar.gz" ]; then
+    echo "build_pmix: using offline pmix-${PMIX_VERSION}.tar.gz"
+    cp "${OFFLINE_SOURCES}/tar/pmix-${PMIX_VERSION}.tar.gz" .
+else
+    wget ${PMIX_URL}
+fi
 tar -xzf pmix-${PMIX_VERSION}.tar.gz
 cd pmix-${PMIX_VERSION}
 

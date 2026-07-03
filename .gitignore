@@ -12,3 +12,8 @@
 
 # Ignore output of audit script
 download*
+
+# Airgapped-build source cache — populated by audit-offline-requirements.sh
+# on the connected side. Directory must exist for the Dockerfile COPY.
+offline-sources/*
+!offline-sources/.gitkeep

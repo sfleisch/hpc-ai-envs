@@ -17,12 +17,21 @@ SHS_VERSION="release/shs-13.0.0"
 # Install Cray libcxi. This requires grabbing the cassini/cxi headers
 # and installing them into ${HPC_DIR} so we can compile libcxi.
 cray_src_dir=/tmp/cray-libs
-mkdir -p $cray_src_dir && \
-    cd $cray_src_dir && \
+mkdir -p $cray_src_dir
+cd $cray_src_dir
+
+if [ -n "${OFFLINE_SOURCES:-}" ] && [ -d "${OFFLINE_SOURCES}/git/shs-libfabric" ]; then
+    echo "cray-libs: using offline sources from ${OFFLINE_SOURCES}/git"
+    cp -r ${OFFLINE_SOURCES}/git/shs-cassini-headers .
+    cp -r ${OFFLINE_SOURCES}/git/shs-cxi-driver .
+    cp -r ${OFFLINE_SOURCES}/git/shs-libcxi .
+    cp -r ${OFFLINE_SOURCES}/git/shs-libfabric .
+else
     git clone https://github.com/HewlettPackard/shs-cassini-headers.git && \
-    git clone https://github.com/HewlettPackard/shs-cxi-driver.git && \
-    git clone https://github.com/HewlettPackard/shs-libcxi.git && \
-    git clone https://github.com/HewlettPackard/shs-libfabric.git
+        git clone https://github.com/HewlettPackard/shs-cxi-driver.git && \
+        git clone https://github.com/HewlettPackard/shs-libcxi.git && \
+        git clone https://github.com/HewlettPackard/shs-libfabric.git
+fi
 
 # Install the cassini headers
 cd $cray_src_dir/shs-cassini-headers && \
@@ -111,11 +120,15 @@ else
   LIBFABRIC_NAME="libfabric-${LIBFABRIC_VERSION}"
   LIBFABRIC_URL="${LIBFABRIC_BASE_URL}/v${LIBFABRIC_VERSION}/${LIBFABRIC_NAME}.tar.bz2"
 
-  cd $cray_src_dir                       && \
-      wget ${LIBFABRIC_URL}              && \
-      tar -jxf ${LIBFABRIC_NAME}.tar.bz2    \
-          --no-same-owner                && \
-      cd ${LIBFABRIC_NAME}
+  cd $cray_src_dir
+  if [ -n "${OFFLINE_SOURCES:-}" ] && [ -f "${OFFLINE_SOURCES}/tar/${LIBFABRIC_NAME}.tar.bz2" ]; then
+      echo "cray-libs: using offline ${LIBFABRIC_NAME}.tar.bz2"
+      cp "${OFFLINE_SOURCES}/tar/${LIBFABRIC_NAME}.tar.bz2" .
+  else
+      wget ${LIBFABRIC_URL}
+  fi
+  tar -jxf ${LIBFABRIC_NAME}.tar.bz2 --no-same-owner
+  cd ${LIBFABRIC_NAME}
 fi
 
 ./autogen.sh                       && \

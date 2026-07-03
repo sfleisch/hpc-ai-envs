@@ -16,7 +16,12 @@ then
 
     NCCL_VER="v2.15.0"
     NCCL_REPO="https://github.com/NVIDIA/nccl-tests.git"
-    git clone --depth 1 --branch ${NCCL_VER} ${NCCL_REPO}
+    if [ -n "${OFFLINE_SOURCES:-}" ] && [ -d "${OFFLINE_SOURCES}/git/nccl-tests" ]; then
+        echo "build_tests: using offline nccl-tests"
+        cp -r ${OFFLINE_SOURCES}/git/nccl-tests .
+    else
+        git clone --depth 1 --branch ${NCCL_VER} ${NCCL_REPO}
+    fi
     cd nccl-tests
     make -j8  MPI=1 MPI_HOME=${HPC_DIR} CUDA_HOME=${CUDA_DIR} NCCL_HOME=${HPC_DIR} BUILDDIR=${INSTALL_DIR}
     rm ${INSTALL_DIR}/*.o
@@ -51,7 +56,12 @@ fi
 OSU_VER=7.5.2
 cd ${TDIR}
 OSU_REPO="https://mvapich.cse.ohio-state.edu/download/mvapich"
-wget ${OSU_REPO}/osu-micro-benchmarks-${OSU_VER}.tar.gz
+if [ -n "${OFFLINE_SOURCES:-}" ] && [ -f "${OFFLINE_SOURCES}/tar/osu-micro-benchmarks-${OSU_VER}.tar.gz" ]; then
+    echo "build_tests: using offline osu-micro-benchmarks-${OSU_VER}.tar.gz"
+    cp "${OFFLINE_SOURCES}/tar/osu-micro-benchmarks-${OSU_VER}.tar.gz" .
+else
+    wget ${OSU_REPO}/osu-micro-benchmarks-${OSU_VER}.tar.gz
+fi
 tar -xzf osu-micro-benchmarks-${OSU_VER}.tar.gz --no-same-owner
 cd osu-micro-benchmarks-${OSU_VER}
 ./configure CC=${HPC_DIR}/bin/mpicc CXX=${HPC_DIR}/bin/mpicxx \

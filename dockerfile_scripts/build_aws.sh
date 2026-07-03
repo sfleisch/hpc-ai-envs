@@ -69,7 +69,12 @@ then
         git checkout v1.14.x-xccl
     else
         ###export CC=g++
-        wget ${AWS_URL}
+        if [ -n "${OFFLINE_SOURCES:-}" ] && [ -f "${OFFLINE_SOURCES}/tar/${AWS_NAME}.tar.gz" ]; then
+            echo "build_aws: using offline ${AWS_NAME}.tar.gz"
+            cp "${OFFLINE_SOURCES}/tar/${AWS_NAME}.tar.gz" .
+        else
+            wget ${AWS_URL}
+        fi
         tar -xzf ${AWS_NAME}.tar.gz --no-same-owner
         cd ${AWS_NAME}
 

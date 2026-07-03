@@ -4,6 +4,13 @@ FROM ${BASE_IMAGE}
 ARG SCRIPT_DIR=/tmp/dockerfile_scripts/
 RUN mkdir -p ${SCRIPT_DIR}
 
+# Optional airgapped-build source cache. Populate offline-sources/{git,tar}/
+# on the connected side (see audit-offline-requirements.sh). For online
+# builds, leave the directory empty; the build_*.sh scripts fall through
+# to git-clone/wget when OFFLINE_SOURCES is unset or points at an empty dir.
+COPY offline-sources/ /offline-sources/
+ENV OFFLINE_SOURCES=/offline-sources
+
 # Remove the ompi/ucx, etc that is in the base image
 # Seems that the torch installed in the NGC image links against this.
 # Wonder if that will cause problems? We can have it use our OMPI but it

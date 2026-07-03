@@ -36,10 +36,15 @@ OMPI_SRC_DIR=/tmp/openmpi-src
 OMPI_BASE_URL="https://download.open-mpi.org/release/open-mpi"
 OMPI_URL="${OMPI_BASE_URL}/${OMPI_VER}/openmpi-${OMPI_VER_NUM}.tar.gz"
 
-mkdir -p ${OMPI_SRC_DIR}                        && \
-  cd ${OMPI_SRC_DIR}                            && \
-  wget ${OMPI_URL}                              && \
-  tar -xzf openmpi-${OMPI_VER_NUM}.tar.gz       && \
+mkdir -p ${OMPI_SRC_DIR}
+cd ${OMPI_SRC_DIR}
+if [ -n "${OFFLINE_SOURCES:-}" ] && [ -f "${OFFLINE_SOURCES}/tar/openmpi-${OMPI_VER_NUM}.tar.gz" ]; then
+    echo "ompi: using offline openmpi-${OMPI_VER_NUM}.tar.gz"
+    cp "${OFFLINE_SOURCES}/tar/openmpi-${OMPI_VER_NUM}.tar.gz" .
+else
+    wget ${OMPI_URL}
+fi
+tar -xzf openmpi-${OMPI_VER_NUM}.tar.gz       && \
   cd openmpi-${OMPI_VER_NUM}                    && \
   ./configure ${OMPI_CONFIG_OPTIONS}            && \
   make                                          && \

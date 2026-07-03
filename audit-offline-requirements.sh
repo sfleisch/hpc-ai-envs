@@ -61,11 +61,13 @@ OMPI_VER=$(get "$DFS/ompi.sh" 'OMPI_VER_NUM=')
 AWS_VER=$(get "$DFS/build_aws.sh" '^AWS_VER_NUM=')
 NCCL_TESTS_VER=$(get "$DFS/build_tests.sh" 'NCCL_VER=')
 OSU_VER=$(get "$DFS/build_tests.sh" 'OSU_VER=')
+NCCL_VER=$(get "$DFS/build_nccl.sh" 'git checkout' | awk '{print $NF}' | tr -d ')')
+PMIX_VERSION_DFL=$(get "$DFS/build_pmix.sh" 'PMIX_VERSION=')
 
 # --- Derived URLs ----------------------------------------------------------
 OMPI_MAJOR_MINOR="${OMPI_VER%.*}"
 URL_LIBFABRIC="https://github.com/ofiwg/libfabric/releases/download/v${LIBFABRIC_VERSION}/libfabric-${LIBFABRIC_VERSION}.tar.bz2"
-URL_PMIX="https://github.com/openpmix/openpmix/releases/download/v${PMIX_VERSION}/pmix-${PMIX_VERSION}.tar.gz"
+URL_PMIX="https://github.com/openpmix/openpmix/releases/download/v${PMIX_VERSION:-$PMIX_VERSION_DFL}/pmix-${PMIX_VERSION:-$PMIX_VERSION_DFL}.tar.gz"
 URL_OMPI="https://download.open-mpi.org/release/open-mpi/v${OMPI_MAJOR_MINOR}/openmpi-${OMPI_VER}.tar.gz"
 URL_AWS="https://github.com/aws/aws-ofi-nccl/releases/download/v${AWS_VER}/aws-ofi-nccl-${AWS_VER}.tar.gz"
 URL_OSU="https://mvapich.cse.ohio-state.edu/download/mvapich/osu-micro-benchmarks-${OSU_VER}.tar.gz"
@@ -88,19 +90,30 @@ DEB_LIST=$(awk '/\\$/{sub(/\\$/,""); printf "%s ", $0; next} {print}' \
 if [ "$VERBOSE" -eq 0 ] && [ "$SELF" -eq 0 ]; then
 cat <<EOF
 #!/bin/bash
-# hpc-ai-envs offline source fetch — run on a connected system
+# hpc-ai-envs offline source fetch — run on a connected system.
+# Produces ./offline-sources/{git,tar}/ ready to drop into the
+# hpc-ai-envs checkout root before building.
 set -eu
+
+mkdir -p offline-sources/git offline-sources/tar
+cd offline-sources/git
 
 git clone --depth 1 -b ${SHS_VERSION:-<unset>} https://github.com/HewlettPackard/shs-cassini-headers.git
 git clone --depth 1 -b ${SHS_VERSION:-<unset>} https://github.com/HewlettPackard/shs-cxi-driver.git
 git clone --depth 1 -b ${SHS_VERSION:-<unset>} https://github.com/HewlettPackard/shs-libcxi.git
 git clone --depth 1 -b ${SHS_VERSION:-<unset>} https://github.com/HewlettPackard/shs-libfabric.git
 git clone --depth 1 -b ${NCCL_TESTS_VER:-<unset>} https://github.com/NVIDIA/nccl-tests.git
+git clone https://github.com/nvidia/nccl.git
+( cd nccl && git checkout ${NCCL_VER:-<unset>} )
 
+cd ../tar
 wget $URL_LIBFABRIC
+wget $URL_PMIX
 wget $URL_OMPI
 wget $URL_AWS
 wget $URL_OSU
+
+echo "Done. Copy ./offline-sources/ into the hpc-ai-envs checkout root."
 EOF
 exit 0
 fi
@@ -138,9 +151,14 @@ Dockerfile.vllm-prepared:
 
   FROM $BASE_IMAGE
 
-  # All apt packages the build scripts install (auto-extracted)
+  # cuda-nvml-dev provides nvml.h — libfabric's hmem_cuda code needs it
+  # (auto-detected in the vLLM base image; missing header breaks build later)
   RUN apt-get update && apt-get install -y --no-install-recommends \\
-$(echo "$DEB_LIST" | awk '{if(NR>1)print prev" \\\\"; prev="        "$0} END{if(prev!="")print prev}')
+      cuda-nvml-dev-12-9 && rm -rf /var/lib/apt/lists/*
+
+  # All other apt packages the build scripts install (auto-extracted)
+  RUN apt-get update && apt-get install -y --no-install-recommends \\
+$(echo "$DEB_LIST" | awk '{if(NR>1)print prev" \\"; prev="        "$0} END{if(prev!="")print prev}')
       && rm -rf /var/lib/apt/lists/*
 
   # Pre-build PMIx (no Slingshot dep)

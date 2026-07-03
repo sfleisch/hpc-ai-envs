@@ -4,10 +4,14 @@ set -x
 
 cuda_ver_str=`echo $CUDA_VERSION | awk -F "." '{print $1"."$2}'`
 CUDA_DIR="/usr/local/cuda-$cuda_ver_str"
-    
-git clone https://github.com/nvidia/nccl.git /tmp/nccl_src
 
-(cd /tmp/nccl_src && git checkout v2.27.7-1)
+if [ -n "${OFFLINE_SOURCES:-}" ] && [ -d "${OFFLINE_SOURCES}/git/nccl" ]; then
+    echo "build_nccl: using offline nccl repo"
+    cp -r ${OFFLINE_SOURCES}/git/nccl /tmp/nccl_src
+else
+    git clone https://github.com/nvidia/nccl.git /tmp/nccl_src
+    (cd /tmp/nccl_src && git checkout v2.27.7-1)
+fi
 
 ## Cuda Compute Capability
 ## 8.0: A100, A30

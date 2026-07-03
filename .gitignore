@@ -10,3 +10,5 @@
 # Ignore tar files
 *.tar
 
+# Ignore output of audit script
+download*

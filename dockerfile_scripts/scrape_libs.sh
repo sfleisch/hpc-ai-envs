@@ -164,22 +164,22 @@ fi
 #   - user args present -> base entrypoint + user args (CMD is dropped)
 #   - no user args      -> base entrypoint + base CMD
 if [ "${HPC_PRESERVE_BASE_ENTRYPOINT:-0}" = "1" ] && \
-   [[ -s /container/etc/.base-entrypoint || -s /container/etc/.base-cmd ]]; then
+   [[ -s /container/etc/base-capture/base-entrypoint || -s /container/etc/base-capture/base-cmd ]]; then
     # Read one arg per line, skipping blank lines defensively (docker
     # inspect --format tends to append a trailing newline on top of the
     # per-element {{println}}, which would otherwise produce a stray empty
     # array element and pass '' as an arg to the base command).
     base_ep=()
     base_cmd=()
-    if [ -s /container/etc/.base-entrypoint ]; then
+    if [ -s /container/etc/base-capture/base-entrypoint ]; then
         while IFS= read -r _line || [ -n "$_line" ]; do
             [ -n "$_line" ] && base_ep+=("$_line")
-        done < /container/etc/.base-entrypoint
+        done < /container/etc/base-capture/base-entrypoint
     fi
-    if [ -s /container/etc/.base-cmd ]; then
+    if [ -s /container/etc/base-capture/base-cmd ]; then
         while IFS= read -r _line || [ -n "$_line" ]; do
             [ -n "$_line" ] && base_cmd+=("$_line")
-        done < /container/etc/.base-cmd
+        done < /container/etc/base-capture/base-cmd
     fi
     if [ $# -eq 0 ]; then
         set -- "${base_ep[@]}" "${base_cmd[@]}"

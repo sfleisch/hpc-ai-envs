@@ -127,14 +127,15 @@ RUN mkdir -p /container/bin && \
     cp ${SCRIPT_DIR}/scrape_libs.sh /container/bin
 
 # Optional: snapshot the base image's ENTRYPOINT/CMD so scrape_libs.sh
-# can replay it after setting up the HPC environment. The two files are
-# committed to the repo as empty placeholders and overwritten by the
-# Makefile's CAPTURE_BASE_ENTRYPOINT hook when built via
-# `make ngc PRESERVE_BASE_ENTRYPOINT=1`. A direct `docker build` (no
-# Makefile) leaves them empty, which the runtime check treats as a
-# no-op — preserving the pre-feature behavior.
+# can replay it after setting up the HPC environment. The .base-capture/
+# directory is tracked (via .gitkeep) but its contents are gitignored
+# and populated by the Makefile's CAPTURE_BASE_ENTRYPOINT hook when
+# built via `make ngc PRESERVE_BASE_ENTRYPOINT=1`. A direct `docker
+# build` (no Makefile) sees an empty directory; scrape_libs.sh's
+# non-empty-file check treats that as a no-op, preserving pre-feature
+# behavior.
 ARG PRESERVE_BASE_ENTRYPOINT=0
-COPY .base-entrypoint .base-cmd /container/etc/
+COPY .base-capture/ /container/etc/base-capture/
 ENV HPC_PRESERVE_BASE_ENTRYPOINT=${PRESERVE_BASE_ENTRYPOINT}
 
 ENTRYPOINT ["/container/bin/scrape_libs.sh"]

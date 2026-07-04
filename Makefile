@@ -221,19 +221,24 @@ sif: tar
 
 # Build an HPC container using the base image provided by the user.
 # Snapshot the base image's Entrypoint and Cmd into files in the build
-# context. Called by the ngc/rocm targets before `docker build`. When
-# PRESERVE_BASE_ENTRYPOINT=0 the files are truncated so the scrape_libs.sh
-# runtime check is a no-op.
+# context under .base-capture/. Called by the ngc/rocm targets before
+# `docker build`. When PRESERVE_BASE_ENTRYPOINT=0 the files are truncated
+# so the scrape_libs.sh runtime check is a no-op.
+#
+# .base-capture/ is a tracked directory (via .gitkeep) whose contents
+# are gitignored so switching bases between builds doesn't dirty the
+# working tree.
 #
 # Arg $(1): base image reference to inspect
 define CAPTURE_BASE_ENTRYPOINT
+	@mkdir -p .base-capture
 	@if [ "$(PRESERVE_BASE_ENTRYPOINT)" = "1" ]; then \
 	    echo "Snapshotting ENTRYPOINT/CMD from $(1)"; \
-	    $(DOCKER) inspect --format='{{range .Config.Entrypoint}}{{println .}}{{end}}' $(1) | sed '/^$$/d' > .base-entrypoint || : > .base-entrypoint; \
-	    $(DOCKER) inspect --format='{{range .Config.Cmd}}{{println .}}{{end}}'        $(1) | sed '/^$$/d' > .base-cmd        || : > .base-cmd; \
+	    $(DOCKER) inspect --format='{{range .Config.Entrypoint}}{{println .}}{{end}}' $(1) | sed '/^$$/d' > .base-capture/base-entrypoint || : > .base-capture/base-entrypoint; \
+	    $(DOCKER) inspect --format='{{range .Config.Cmd}}{{println .}}{{end}}'        $(1) | sed '/^$$/d' > .base-capture/base-cmd        || : > .base-capture/base-cmd; \
 	else \
-	    : > .base-entrypoint; \
-	    : > .base-cmd; \
+	    : > .base-capture/base-entrypoint; \
+	    : > .base-capture/base-cmd; \
 	fi
 endef
 

@@ -119,9 +119,12 @@ RUN mkdir -p /container/bin && \
     cp ${SCRIPT_DIR}/scrape_libs.sh /container/bin
 
 # Optional: snapshot the base image's ENTRYPOINT/CMD so scrape_libs.sh
-# can replay it after setting up the HPC environment. Files are always
-# copied (may be empty) so this COPY step doesn't fail. The env var
-# gates the replay behavior at runtime.
+# can replay it after setting up the HPC environment. The two files are
+# committed to the repo as empty placeholders and overwritten by the
+# Makefile's CAPTURE_BASE_ENTRYPOINT hook when built via
+# `make rocm PRESERVE_BASE_ENTRYPOINT=1`. A direct `docker build` (no
+# Makefile) leaves them empty, which the runtime check treats as a
+# no-op — preserving the pre-feature behavior.
 ARG PRESERVE_BASE_ENTRYPOINT=0
 COPY .base-entrypoint .base-cmd /container/etc/
 ENV HPC_PRESERVE_BASE_ENTRYPOINT=${PRESERVE_BASE_ENTRYPOINT}

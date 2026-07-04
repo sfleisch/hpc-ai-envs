@@ -19,9 +19,3 @@ offline-sources/*
 !offline-sources/.gitkeep
 # Containers with added .debs installed for airgapped installation
 prep
-
-# Build-time snapshots of the base image's ENTRYPOINT/CMD, generated
-# by `make ngc PRESERVE_BASE_ENTRYPOINT=1` (or rocm). Always present
-# after the first build so the Dockerfile COPY step succeeds.
-.base-entrypoint
-.base-cmd

@@ -122,11 +122,11 @@ export OMPI_MCA_pml=${OMPI_MCA_pml:="^ucx"}
 if command -v nvidia-smi >/dev/null 2>&1; then
     # Have a cuda driver in the container so check against the host
     host_driver=`nvidia-smi --query-gpu=driver_version --format=csv | tail -n 1 | awk -F "." '{print $1}'`
-    if [ -n $CUDA_DRIVER_VERSION ] ; then
+    if [ -n "$CUDA_DRIVER_VERSION" ] ; then
 	container_driver=`echo $CUDA_DRIVER_VERSION | awk -F "." '{print $1}'`
-	if [ -n $host_driver ] ; then
-	    if [ -n $container_driver ] ; then
-		if [ $container_driver -gt $host_driver ] ; then
+	if [ -n "$host_driver" ] ; then
+	    if [ -n "$container_driver" ] ; then
+		if [ "$container_driver" -gt "$host_driver" ] ; then
 		    # Make sure the cuda forward compatible path is
 		    # prepended in case there is a driver mismatch between the
 		    # host and container

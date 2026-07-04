@@ -148,5 +148,11 @@ if [ -r /container/hpc/lib/libnccl-net.so ]; then
     export LD_PRELOAD=/container/hpc/lib/libnccl-net.so:$LD_PRELOAD
 fi
 
-# Execute what we were told to execute
+# Execute what we were told to execute.
+# Strip a leading `--` argument-separator so bash's `exec` builtin
+# doesn't interpret it as an unknown option. Some base images (e.g.
+# vllm-openai) invoke their entrypoint with `-- ...`.
+if [ "${1:-}" = "--" ]; then
+    shift
+fi
 exec "${@}"

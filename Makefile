@@ -229,8 +229,8 @@ sif: tar
 define CAPTURE_BASE_ENTRYPOINT
 	@if [ "$(PRESERVE_BASE_ENTRYPOINT)" = "1" ]; then \
 	    echo "Snapshotting ENTRYPOINT/CMD from $(1)"; \
-	    $(DOCKER) inspect --format='{{range .Config.Entrypoint}}{{println .}}{{end}}' $(1) > .base-entrypoint || : > .base-entrypoint; \
-	    $(DOCKER) inspect --format='{{range .Config.Cmd}}{{println .}}{{end}}'        $(1) > .base-cmd        || : > .base-cmd; \
+	    $(DOCKER) inspect --format='{{range .Config.Entrypoint}}{{println .}}{{end}}' $(1) | sed '/^$$/d' > .base-entrypoint || : > .base-entrypoint; \
+	    $(DOCKER) inspect --format='{{range .Config.Cmd}}{{println .}}{{end}}'        $(1) | sed '/^$$/d' > .base-cmd        || : > .base-cmd; \
 	else \
 	    : > .base-entrypoint; \
 	    : > .base-cmd; \

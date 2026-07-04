@@ -165,13 +165,21 @@ fi
 #   - no user args      -> base entrypoint + base CMD
 if [ "${HPC_PRESERVE_BASE_ENTRYPOINT:-0}" = "1" ] && \
    [[ -s /container/etc/.base-entrypoint || -s /container/etc/.base-cmd ]]; then
+    # Read one arg per line, skipping blank lines defensively (docker
+    # inspect --format tends to append a trailing newline on top of the
+    # per-element {{println}}, which would otherwise produce a stray empty
+    # array element and pass '' as an arg to the base command).
     base_ep=()
     base_cmd=()
     if [ -s /container/etc/.base-entrypoint ]; then
-        mapfile -t base_ep < /container/etc/.base-entrypoint
+        while IFS= read -r _line || [ -n "$_line" ]; do
+            [ -n "$_line" ] && base_ep+=("$_line")
+        done < /container/etc/.base-entrypoint
     fi
     if [ -s /container/etc/.base-cmd ]; then
-        mapfile -t base_cmd < /container/etc/.base-cmd
+        while IFS= read -r _line || [ -n "$_line" ]; do
+            [ -n "$_line" ] && base_cmd+=("$_line")
+        done < /container/etc/.base-cmd
     fi
     if [ $# -eq 0 ]; then
         set -- "${base_ep[@]}" "${base_cmd[@]}"

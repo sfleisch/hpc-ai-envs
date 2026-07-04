@@ -117,6 +117,15 @@ RUN if [ "$WITH_MPI" = "1" ]; then \
 COPY dockerfile_scripts/scrape_libs.sh ${SCRIPT_DIR}
 RUN mkdir -p /container/bin && \
     cp ${SCRIPT_DIR}/scrape_libs.sh /container/bin
+
+# Optional: snapshot the base image's ENTRYPOINT/CMD so scrape_libs.sh
+# can replay it after setting up the HPC environment. Files are always
+# copied (may be empty) so this COPY step doesn't fail. The env var
+# gates the replay behavior at runtime.
+ARG PRESERVE_BASE_ENTRYPOINT=0
+COPY .base-entrypoint .base-cmd /container/etc/
+ENV HPC_PRESERVE_BASE_ENTRYPOINT=${PRESERVE_BASE_ENTRYPOINT}
+
 ENTRYPOINT ["/container/bin/scrape_libs.sh"]
 
 CMD ["/bin/bash"]

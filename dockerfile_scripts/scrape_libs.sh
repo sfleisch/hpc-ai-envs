@@ -155,4 +155,32 @@ fi
 if [ "${1:-}" = "--" ]; then
     shift
 fi
-exec "${@}"
+
+# When the image was built with PRESERVE_BASE_ENTRYPOINT=1 the Makefile
+# snapshotted the base image's ENTRYPOINT and CMD into these files.
+# Replay them so the -hpc image behaves as a drop-in replacement for
+# the base: `podman run <hpc-image> <base's normal args>` just works.
+# Semantics match Docker's ENTRYPOINT+CMD merge rules:
+#   - user args present -> base entrypoint + user args (CMD is dropped)
+#   - no user args      -> base entrypoint + base CMD
+if [ "${HPC_PRESERVE_BASE_ENTRYPOINT:-0}" = "1" ] && \
+   [[ -s /container/etc/.base-entrypoint || -s /container/etc/.base-cmd ]]; then
+    base_ep=()
+    base_cmd=()
+    if [ -s /container/etc/.base-entrypoint ]; then
+        mapfile -t base_ep < /container/etc/.base-entrypoint
+    fi
+    if [ -s /container/etc/.base-cmd ]; then
+        mapfile -t base_cmd < /container/etc/.base-cmd
+    fi
+    if [ $# -eq 0 ]; then
+        set -- "${base_ep[@]}" "${base_cmd[@]}"
+    else
+        set -- "${base_ep[@]}" "$@"
+    fi
+fi
+
+# Guard exec against an arg starting with `-` (e.g. --model). exec's own
+# option parsing consumes anything looking like a flag before it hits
+# the command. Prefix `--` to end exec's option list.
+exec -- "${@}"

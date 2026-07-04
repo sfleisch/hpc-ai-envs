@@ -9,6 +9,14 @@ export REGISTRY_REPO := hpc-ai-envs
 HOROVOD_GPU_OPERATIONS := NCCL
 BUILD_OPTS ?=
 
+# When set to 1, snapshot the base image's ENTRYPOINT and CMD at build
+# time and replay them from scrape_libs.sh at container start. This makes
+# the -hpc image a drop-in replacement for the base image — users can
+# invoke `podman run <hpc-image> <same args as base>` and get the same
+# behavior plus the Slingshot/HPC env setup. Default 0 preserves the
+# original behavior (user must supply the full command on `podman run`).
+PRESERVE_BASE_ENTRYPOINT ?= 0
+
 # Default to enabling MPI, OFI and SS11. Note that if we cannot
 # find the SS11 libs automatically and the user did not provide
 # a location we will not end up building the -ss version of the image.
@@ -212,6 +220,23 @@ sif: tar
 	if [ "$(RM_SIF_TAR)" = "1" ]; then rm -f "$(TARGET_NAME).tar"; fi
 
 # Build an HPC container using the base image provided by the user.
+# Snapshot the base image's Entrypoint and Cmd into files in the build
+# context. Called by the ngc/rocm targets before `docker build`. When
+# PRESERVE_BASE_ENTRYPOINT=0 the files are truncated so the scrape_libs.sh
+# runtime check is a no-op.
+#
+# Arg $(1): base image reference to inspect
+define CAPTURE_BASE_ENTRYPOINT
+	@if [ "$(PRESERVE_BASE_ENTRYPOINT)" = "1" ]; then \
+	    echo "Snapshotting ENTRYPOINT/CMD from $(1)"; \
+	    $(DOCKER) inspect --format='{{range .Config.Entrypoint}}{{println .}}{{end}}' $(1) > .base-entrypoint || : > .base-entrypoint; \
+	    $(DOCKER) inspect --format='{{range .Config.Cmd}}{{println .}}{{end}}'        $(1) > .base-cmd        || : > .base-cmd; \
+	else \
+	    : > .base-entrypoint; \
+	    : > .base-cmd; \
+	fi
+endef
+
 # This enables us to append the SS11 bits to an otherwise working
 # user image to make it easier for users to deploy their containers on SS11.
 .PHONY: ngc
@@ -221,6 +246,7 @@ ngc:
 	@echo "USER_NGC_IMAGE_NAME: $(USER_NGC_IMAGE_NAME)"
 	@echo "USER_NGC_IMAGE_VER: $(USER_NGC_IMAGE_VER)"
 	@echo "USER_NGC_IMAGE_HPC: $(USER_NGC_IMAGE_HPC)"
+	$(call CAPTURE_BASE_ENTRYPOINT,$(USER_NGC_BASE_IMAGE))
 	$(DOCKER) build -f Dockerfile-ngc-hpc $(BUILD_OPTS) \
 		--build-arg "$(NCCL_BUILD_ARG)" \
 		--build-arg "$(XCCL_BUILD_ARG)" \
@@ -232,6 +258,7 @@ ngc:
 		--build-arg "WITH_TF=0" \
 		--build-arg BASE_IMAGE="$(USER_NGC_BASE_IMAGE)" \
 		--build-arg "LIBFABRIC_VERSION=$(LIBFABRIC_VERSION)" \
+		--build-arg "PRESERVE_BASE_ENTRYPOINT=$(PRESERVE_BASE_ENTRYPOINT)" \
 		-t $(USER_NGC_IMAGE_HPC)\
 		.
 
@@ -246,6 +273,7 @@ rocm:
 	@echo "USER_ROCM_IMAGE_NAME: $(USER_ROCM_IMAGE_NAME)"
 	@echo "USER_ROCM_IMAGE_VER: $(USER_ROCM_IMAGE_VER)"
 	@echo "USER_ROCM_IMAGE_HPC: $(USER_ROCM_IMAGE_HPC)"
+	$(call CAPTURE_BASE_ENTRYPOINT,$(USER_ROCM_BASE_IMAGE))
 	$(DOCKER) build -f Dockerfile-rocm-hpc $(BUILD_OPTS) \
 		--build-arg "$(NCCL_BUILD_ARG)" \
 		--build-arg "$(XCCL_BUILD_ARG)" \
@@ -257,5 +285,6 @@ rocm:
 		--build-arg "WITH_TF=0" \
 		--build-arg BASE_IMAGE="$(USER_ROCM_BASE_IMAGE)" \
 		--build-arg "LIBFABRIC_VERSION=$(LIBFABRIC_VERSION)" \
+		--build-arg "PRESERVE_BASE_ENTRYPOINT=$(PRESERVE_BASE_ENTRYPOINT)" \
 		-t $(USER_ROCM_IMAGE_HPC)\
 		.

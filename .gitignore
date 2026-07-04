@@ -17,3 +17,5 @@ download*
 # on the connected side. Directory must exist for the Dockerfile COPY.
 offline-sources/*
 !offline-sources/.gitkeep
+# Containers with added .debs installed for airgapped installation
+prep
